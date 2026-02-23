@@ -1,0 +1,244 @@
+// ===== LANGUAGES =====
+const LANGS = [
+  { v: 'Arabic',      l: '🇸🇦 العربية',         rtl: true  },
+  { v: 'Franco Arabic', l: '🔤 فرانكو عربي',     rtl: false },
+  { v: 'English',     l: '🇬🇧 English',          rtl: false },
+  { v: 'French',      l: '🇫🇷 Français',         rtl: false },
+  { v: 'Spanish',     l: '🇪🇸 Español',          rtl: false },
+  { v: 'German',      l: '🇩🇪 Deutsch',          rtl: false },
+  { v: 'Italian',     l: '🇮🇹 Italiano',         rtl: false },
+  { v: 'Portuguese',  l: '🇵🇹 Português',        rtl: false },
+  { v: 'Russian',     l: '🇷🇺 Русский',          rtl: false },
+  { v: 'Chinese',     l: '🇨🇳 中文',              rtl: false },
+  { v: 'Japanese',    l: '🇯🇵 日本語',            rtl: false },
+  { v: 'Korean',      l: '🇰🇷 한국어',            rtl: false },
+  { v: 'Turkish',     l: '🇹🇷 Türkçe',           rtl: false },
+  { v: 'Persian',     l: '🇮🇷 فارسی',            rtl: true  },
+  { v: 'Urdu',        l: '🇵🇰 اردو',             rtl: true  },
+  { v: 'Hindi',       l: '🇮🇳 हिन्दी',           rtl: false },
+  { v: 'Hebrew',      l: '🇮🇱 עברית',            rtl: true  },
+  { v: 'Dutch',       l: '🇳🇱 Nederlands',       rtl: false },
+  { v: 'Polish',      l: '🇵🇱 Polski',           rtl: false },
+  { v: 'Swedish',     l: '🇸🇪 Svenska',          rtl: false },
+  { v: 'Greek',       l: '🇬🇷 Ελληνικά',         rtl: false },
+  { v: 'Indonesian',  l: '🇮🇩 Bahasa Indonesia', rtl: false },
+  { v: 'Thai',        l: '🇹🇭 ภาษาไทย',          rtl: false },
+  { v: 'Vietnamese',  l: '🇻🇳 Tiếng Việt',       rtl: false },
+  { v: 'Ukrainian',   l: '🇺🇦 Українська',        rtl: false },
+  { v: 'Swahili',     l: '🇰🇪 Kiswahili',        rtl: false },
+];
+
+// ===== STATE =====
+let busy = false;
+let outputResult = '';
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', () => {
+  populateSelects();
+  onLangChange();
+  document.getElementById('inputText').addEventListener('input', updateCharCount);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doTranslate();
+  });
+});
+
+function populateSelects() {
+  const src = document.getElementById('srcLang');
+  const tgt = document.getElementById('tgtLang');
+  LANGS.forEach((lang, i) => {
+    src.innerHTML += `<option value="${lang.v}" ${i === 0 ? 'selected' : ''}>${lang.l}</option>`;
+    tgt.innerHTML += `<option value="${lang.v}" ${i === 2 ? 'selected' : ''}>${lang.l}</option>`;
+  });
+}
+
+// ===== LANG CHANGE =====
+function onLangChange() {
+  const src = document.getElementById('srcLang').value;
+  const tgt = document.getElementById('tgtLang').value;
+  const si = LANGS.find(l => l.v === src);
+  const ti = LANGS.find(l => l.v === tgt);
+  const inp = document.getElementById('inputText');
+  const out = document.getElementById('outputText');
+
+  document.getElementById('inLabel').textContent  = src;
+  document.getElementById('outLabel').textContent = tgt;
+
+  inp.setAttribute('dir', si?.rtl ? 'rtl' : 'ltr');
+  out.setAttribute('dir', ti?.rtl ? 'rtl' : 'ltr');
+
+  const placeholders = {
+    'Arabic':        'اكتب النص هنا…',
+    'Franco Arabic': 'Ekteb hena… e.g. ana ta3ban awy',
+    'Persian':       'متن خود را اینجا بنویسید…',
+    'Urdu':          'یہاں متن لکھیں…',
+    'Hebrew':        'כתוב את הטקסט כאן…',
+  };
+  inp.placeholder = placeholders[src] || `Type your ${src} text here…`;
+  updateCharCount();
+}
+
+// ===== SWAP =====
+function swapLangs() {
+  const srcSel = document.getElementById('srcLang');
+  const tgtSel = document.getElementById('tgtLang');
+  const prevSrc = srcSel.value;
+  const prevTgt = tgtSel.value;
+  const prevOut = outputResult;
+
+  srcSel.value = prevTgt;
+  tgtSel.value = prevSrc;
+  onLangChange();
+
+  if (prevOut) {
+    document.getElementById('inputText').value = prevOut;
+    setOutput('');
+    outputResult = '';
+    document.getElementById('outFoot').textContent = '';
+  }
+  updateCharCount();
+}
+
+// ===== CHAR COUNT =====
+function updateCharCount() {
+  const v = document.getElementById('inputText').value;
+  const src = document.getElementById('srcLang').value;
+  const si = LANGS.find(l => l.v === src);
+  document.getElementById('charCount').textContent = `${v.length} ${si?.rtl ? 'حرف' : 'chars'}`;
+}
+
+// ===== COPY =====
+async function doCopy(which) {
+  const text = which === 'in'
+    ? document.getElementById('inputText').value
+    : outputResult;
+  if (!text) { showToast('لا يوجد نص'); return; }
+  const btnId = which === 'in' ? 'cpIn' : 'cpOut';
+  try {
+    await navigator.clipboard.writeText(text);
+    const b = document.getElementById(btnId);
+    b.textContent = '✓'; b.classList.add('ok');
+    setTimeout(() => { b.textContent = '⧉'; b.classList.remove('ok'); }, 1600);
+  } catch { showToast('فشل النسخ'); }
+}
+
+// ===== CLEAR =====
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  setOutput('');
+  outputResult = '';
+  document.getElementById('outFoot').textContent = '';
+  updateCharCount();
+}
+
+// ===== API KEY TOGGLE =====
+function toggleKey() {
+  const inp = document.getElementById('apiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ===== PROMPT BUILDER =====
+function buildPrompt(text, src, tgt) {
+  if (src === 'Franco Arabic')
+    return `You are an expert in Egyptian Franco Arabic (Arabizi). Translate the following to ${tgt}. Return ONLY the translation.\nConventions: 3=ع, 2=أ, 7=ح, 5=خ\nText: ${text}`;
+  if (tgt === 'Franco Arabic')
+    return `You are an expert in Egyptian Franco Arabic (Arabizi). Convert the following ${src} to Arabizi. Return ONLY the Arabizi.\nConventions: 3=ع, 2=أ, 7=ح, 5=خ\nText: ${text}`;
+  return `Translate from ${src} to ${tgt}. Return ONLY the translation, nothing else.\nText: ${text}`;
+}
+
+// ===== OUTPUT HELPERS =====
+function setOutput(html) {
+  document.getElementById('outputText').innerHTML = html || '<span class="ph">ستظهر الترجمة هنا…</span>';
+}
+
+function typeWrite(text) {
+  const out = document.getElementById('outputText');
+  out.textContent = '';
+  const cur = document.createElement('span');
+  cur.className = 'blink';
+  const speed = Math.max(5, Math.min(20, 1800 / text.length));
+  let i = 0;
+  function tick() {
+    if (i < text.length) {
+      out.textContent = text.slice(0, ++i);
+      out.appendChild(cur);
+      setTimeout(tick, speed);
+    } else {
+      out.textContent = text;
+      const tgt = document.getElementById('tgtLang').value;
+      const ti = LANGS.find(l => l.v === tgt);
+      document.getElementById('outFoot').textContent = `${text.length} ${ti?.rtl ? 'حرف' : 'chars'}`;
+    }
+  }
+  tick();
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ===== TRANSLATE =====
+async function doTranslate() {
+  if (busy) return;
+
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { showToast('🔑 أدخل Anthropic API Key أولاً'); return; }
+
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { showToast('اكتب نصاً أولاً'); return; }
+
+  const src = document.getElementById('srcLang').value;
+  const tgt = document.getElementById('tgtLang').value;
+  if (src === tgt) { showToast('اختر لغتين مختلفتين'); return; }
+
+  busy = true;
+  outputResult = '';
+  const btn = document.getElementById('trBtn');
+  btn.disabled = true;
+  document.getElementById('btnContent').innerHTML = '<span class="spinner"></span> جاري الترجمة…';
+  document.getElementById('outputText').innerHTML = '<span class="blink"></span>';
+  document.getElementById('outFoot').textContent = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: buildPrompt(text, src, tgt) }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'API Error');
+
+    const result = (data.content?.[0]?.text || '').trim();
+    outputResult = result;
+
+    const ti = LANGS.find(l => l.v === tgt);
+    document.getElementById('outputText').setAttribute('dir', ti?.rtl ? 'rtl' : 'ltr');
+    typeWrite(result);
+
+  } catch (err) {
+    setOutput('');
+    if (err.message && err.message.includes('401'))
+      showToast('🔑 API Key غلط أو منتهي');
+    else if (err.message && err.message.includes('429'))
+      showToast('⚠️ تجاوزت الحد المسموح، انتظر قليلاً');
+    else
+      showToast('⚠️ خطأ في الاتصال، تأكد من الـ API Key');
+    console.error(err);
+  } finally {
+    busy = false;
+    btn.disabled = false;
+    document.getElementById('btnContent').innerHTML = '🌐 &nbsp; ترجم الآن';
+  }
+}

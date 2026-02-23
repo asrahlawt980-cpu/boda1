@@ -1,495 +1,259 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Boda | مترجم</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #080b11;
-    --surface: #0f1521;
-    --surface2: #151d2e;
-    --border: #1a2540;
-    --accent: #3b82f6;
-    --accent2: #60a5fa;
-    --accent3: #93c5fd;
-    --glow: rgba(59,130,246,0.10);
-    --text: #e2e8f0;
-    --text-dim: #94a3b8;
-    --text-muted: #4a5a72;
-    --success: #10b981;
-    --r: 14px;
+import { useState, useCallback } from "react";
+
+const LANGUAGES = [
+  { value: "Arabic", label: "🇸🇦 العربية", sub: "Arabic", rtl: true },
+  { value: "Franco Arabic", label: "🔤 فرانكو", sub: "Franco Arabic", rtl: false },
+  { value: "English", label: "🇬🇧 English", sub: "الإنجليزية", rtl: false },
+  { value: "French", label: "🇫🇷 Français", sub: "الفرنسية", rtl: false },
+  { value: "Spanish", label: "🇪🇸 Español", sub: "الإسبانية", rtl: false },
+  { value: "German", label: "🇩🇪 Deutsch", sub: "الألمانية", rtl: false },
+  { value: "Italian", label: "🇮🇹 Italiano", sub: "الإيطالية", rtl: false },
+  { value: "Portuguese", label: "🇵🇹 Português", sub: "البرتغالية", rtl: false },
+  { value: "Russian", label: "🇷🇺 Русский", sub: "الروسية", rtl: false },
+  { value: "Chinese", label: "🇨🇳 中文", sub: "الصينية", rtl: false },
+  { value: "Japanese", label: "🇯🇵 日本語", sub: "اليابانية", rtl: false },
+  { value: "Korean", label: "🇰🇷 한국어", sub: "الكورية", rtl: false },
+  { value: "Turkish", label: "🇹🇷 Türkçe", sub: "التركية", rtl: false },
+  { value: "Persian", label: "🇮🇷 فارسی", sub: "الفارسية", rtl: true },
+  { value: "Urdu", label: "🇵🇰 اردو", sub: "الأردية", rtl: true },
+  { value: "Hindi", label: "🇮🇳 हिन्दी", sub: "الهندية", rtl: false },
+  { value: "Bengali", label: "🇧🇩 বাংলা", sub: "البنغالية", rtl: false },
+  { value: "Dutch", label: "🇳🇱 Nederlands", sub: "الهولندية", rtl: false },
+  { value: "Polish", label: "🇵🇱 Polski", sub: "البولندية", rtl: false },
+  { value: "Swedish", label: "🇸🇪 Svenska", sub: "السويدية", rtl: false },
+  { value: "Greek", label: "🇬🇷 Ελληνικά", sub: "اليونانية", rtl: false },
+  { value: "Hebrew", label: "🇮🇱 עברית", sub: "العبرية", rtl: true },
+  { value: "Indonesian", label: "🇮🇩 Indonesia", sub: "الإندونيسية", rtl: false },
+  { value: "Thai", label: "🇹🇭 ภาษาไทย", sub: "التايلاندية", rtl: false },
+  { value: "Vietnamese", label: "🇻🇳 Tiếng Việt", sub: "الفيتنامية", rtl: false },
+  { value: "Ukrainian", label: "🇺🇦 Українська", sub: "الأوكرانية", rtl: false },
+  { value: "Swahili", label: "🇰🇪 Kiswahili", sub: "السواحيلية", rtl: false },
+];
+
+function buildPrompt(text, srcLang, tgtLang) {
+  if (srcLang === "Franco Arabic") {
+    return `You are an expert in Egyptian/Arab Franco Arabic (Arabizi). Translate into ${tgtLang}. Rules: ONLY return the translation, nothing else. Understand: 3=ع, 2=أ, 7=ح, 5=خ.\n\nText:\n${text}`;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:'Cairo','Outfit',sans-serif; min-height:100vh; overflow-x:hidden; }
-
-  .orb { position:fixed; pointer-events:none; z-index:0; border-radius:50%; filter:blur(120px); }
-  .orb1 { width:700px; height:700px; background:radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%); top:-200px; right:-150px; }
-  .orb2 { width:500px; height:500px; background:radial-gradient(circle,rgba(99,102,241,0.05) 0%,transparent 70%); bottom:-100px; left:-100px; }
-
-  header {
-    position:sticky; top:0; z-index:100;
-    background:rgba(8,11,17,0.88);
-    backdrop-filter:blur(18px);
-    border-bottom:1px solid var(--border);
-    padding:0 36px; height:64px;
-    display:flex; align-items:center; justify-content:space-between;
+  if (tgtLang === "Franco Arabic") {
+    return `You are an expert in Egyptian Franco Arabic (Arabizi). Translate the following ${srcLang} into Franco Arabic. Rules: ONLY return Franco Arabic, nothing else. Use: 3=ع, 2=أ, 7=ح, 5=خ.\n\nText:\n${text}`;
   }
-  .logo { display:flex; align-items:center; gap:12px; }
-  .logo-mark {
-    width:40px; height:40px;
-    background:linear-gradient(135deg,var(--accent),#6366f1);
-    border-radius:11px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.2rem;
-    box-shadow:0 4px 18px rgba(59,130,246,0.35);
-  }
-  .logo-text { font-size:1.4rem; font-weight:900; color:var(--text); font-family:'Outfit',sans-serif; letter-spacing:-1px; }
-  .logo-text em { font-style:normal; color:var(--accent2); }
-  .logo-sub { font-family:'Outfit',sans-serif; font-size:0.68rem; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; }
-  .badge { display:flex; align-items:center; gap:7px; padding:6px 13px; background:var(--surface); border:1px solid var(--border); border-radius:20px; font-size:0.73rem; color:var(--text-muted); font-family:'Outfit',sans-serif; }
-  .dot { width:6px; height:6px; background:var(--success); border-radius:50%; animation:pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  return `Translate the following ${srcLang} text into ${tgtLang}. Return ONLY the translation, no explanations.\n\nText:\n${text}`;
+}
 
-  main { position:relative; z-index:1; max-width:980px; margin:0 auto; padding:52px 24px 72px; }
+export default function BodaTranslator() {
+  const [srcLang, setSrcLang] = useState("Arabic");
+  const [tgtLang, setTgtLang] = useState("English");
+  const [inputText, setInputText] = useState("");
+  const [outputText, setOutputText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
+  const [copiedIn, setCopiedIn] = useState(false);
+  const [copiedOut, setCopiedOut] = useState(false);
 
-  .hero { text-align:center; margin-bottom:52px; animation:up .65s ease both; }
-  @keyframes up { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+  const srcInfo = LANGUAGES.find(l => l.value === srcLang) || LANGUAGES[0];
+  const tgtInfo = LANGUAGES.find(l => l.value === tgtLang) || LANGUAGES[2];
 
-  .hero-chip {
-    display:inline-flex; align-items:center; gap:7px;
-    padding:6px 16px;
-    background:rgba(59,130,246,0.08);
-    border:1px solid rgba(59,130,246,0.2);
-    border-radius:20px; margin-bottom:22px;
-    font-size:0.78rem; color:var(--accent3);
-    font-family:'Outfit',sans-serif; letter-spacing:.5px;
-  }
-  .hero h1 { font-size:clamp(2rem,5vw,3.2rem); font-weight:900; line-height:1.15; letter-spacing:-1px; margin-bottom:14px; }
-  .hero h1 .grad {
-    font-family:'Outfit',sans-serif;
-    background:linear-gradient(90deg,var(--accent2),var(--accent3));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-  }
-  .hero p { color:var(--text-dim); font-size:1rem; font-weight:300; }
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2800);
+  };
 
-  /* Lang bar */
-  .lang-bar {
-    display:flex; align-items:center; gap:8px;
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--r); padding:8px; margin-bottom:14px;
-    animation:up .65s .1s ease both;
-  }
+  const swap = () => {
+    const prevSrc = srcLang, prevTgt = tgtLang, prevOut = outputText;
+    setSrcLang(prevTgt);
+    setTgtLang(prevSrc);
+    if (prevOut) { setInputText(prevOut); setOutputText(""); }
+  };
 
-
-  .lang-select-wrap { flex:1; }
-  .lang-select {
-    width:100%; padding:11px 14px 11px 28px; border-radius:10px;
-    background:var(--surface2); border:1px solid var(--border);
-    color:var(--text); font-family:'Cairo',sans-serif; font-size:.85rem;
-    font-weight:600; cursor:pointer; outline:none; transition:all .2s;
-    -webkit-appearance:none; appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2364748b' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:8px center;
-  }
-  .lang-select:focus, .lang-select:hover { border-color:rgba(59,130,246,.45); color:var(--accent2); }
-  .lang-select option { background:#111827; color:var(--text); }
-
-  .swap-btn {
-    width:44px; height:44px; border-radius:10px;
-    background:var(--surface2); border:1px solid var(--border);
-    color:var(--text-muted); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.2rem; transition:all .25s; flex-shrink:0;
-  }
-  .swap-btn:hover { background:var(--glow); border-color:var(--accent); color:var(--accent2); transform:rotate(180deg); }
-
-  /* Panels */
-  .translator { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; animation:up .65s .15s ease both; }
-  @media(max-width:640px) { .translator{grid-template-columns:1fr} header{padding:0 16px} main{padding:32px 14px 52px} }
-
-  .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; display:flex; flex-direction:column; transition:border-color .2s, box-shadow .2s; }
-  .panel:focus-within { border-color:rgba(59,130,246,.4); box-shadow:0 0 0 3px rgba(59,130,246,.08); }
-
-  .panel-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-bottom:1px solid var(--border); }
-  .panel-lang { font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; font-family:'Outfit',sans-serif; }
-
-  .panel-btns { display:flex; gap:4px; }
-  .pb { width:28px; height:28px; border-radius:7px; background:transparent; border:1px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.85rem; transition:all .15s; }
-  .pb:hover { background:var(--border); color:var(--text); }
-  .pb.ok { color:var(--success) !important; background:rgba(16,185,129,.1) !important; }
-
-  textarea { width:100%; flex:1; min-height:210px; background:transparent; border:none; outline:none; color:var(--text); font-family:'Cairo','Outfit',sans-serif; font-size:1rem; line-height:1.85; padding:16px; resize:none; }
-  textarea::placeholder { color:var(--text-muted); }
-
-  .out-body { flex:1; min-height:210px; padding:16px; font-size:1rem; line-height:1.85; color:var(--text); white-space:pre-wrap; word-break:break-word; }
-  .ph { color:var(--text-muted); font-weight:300; }
-
-  .cursor { display:inline-block; width:2px; height:1.1em; background:var(--accent2); margin-left:2px; vertical-align:middle; border-radius:1px; animation:blink 1s step-end infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-  .panel-foot { padding:8px 14px; border-top:1px solid var(--border); font-size:.72rem; color:var(--text-muted); font-family:'Outfit',sans-serif; }
-
-  /* Translate btn */
-  .btn-wrap { animation:up .65s .2s ease both; }
-  .translate-btn {
-    width:100%; padding:17px;
-    background:linear-gradient(135deg,var(--accent) 0%,#6366f1 100%);
-    border:none; border-radius:var(--r); color:#fff;
-    font-family:'Cairo',sans-serif; font-size:1.1rem; font-weight:700;
-    cursor:pointer; transition:all .22s;
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    box-shadow:0 4px 22px rgba(59,130,246,.22);
-    position:relative; overflow:hidden;
-  }
-  .translate-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.09),transparent); opacity:0; transition:opacity .2s; }
-  .translate-btn:hover { transform:translateY(-2px); box-shadow:0 10px 34px rgba(59,130,246,.42); }
-  .translate-btn:hover::after { opacity:1; }
-  .translate-btn:active { transform:translateY(0); }
-  .translate-btn:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
-
-  .spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .65s linear infinite; }
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  /* Keyboard hint */
-  .kb-hint { text-align:center; margin-top:10px; font-size:.73rem; color:var(--text-muted); font-family:'Outfit',sans-serif; }
-  kbd { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:2px 6px; font-size:.68rem; }
-
-  /* Toast */
-  .toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(16px); background:#1e293b; border:1px solid #ef4444; color:#fca5a5; padding:12px 22px; border-radius:12px; font-size:.88rem; opacity:0; transition:all .3s; z-index:999; font-family:'Cairo',sans-serif; pointer-events:none; }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
-  footer { position:relative; z-index:1; text-align:center; padding:22px; font-size:.73rem; color:var(--text-muted); font-family:'Outfit',sans-serif; border-top:1px solid var(--border); }
-</style>
-</head>
-<body>
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-
-<header>
-  <div class="logo">
-    <div class="logo-mark">🌐</div>
-    <div>
-      <div class="logo-text">Bo<em>da</em></div>
-      <div class="logo-sub">Smart Translator · مترجم ذكي</div>
-    </div>
-  </div>
-  <div class="badge"><div class="dot"></div>AI-Powered</div>
-</header>
-
-<main>
-  <div class="hero">
-    <div class="hero-chip">✦ مترجم ذكي · Smart Translator</div>
-    <h1>
-      <span class="grad">Boda</span> — ترجم بسهولة
-    </h1>
-    <p>ترجمة احترافية بين أكثر من 30 لغة — بدقة ووضوح</p>
-  </div>
-
-  <div class="lang-bar">
-    <div class="lang-select-wrap">
-      <select id="srcLang" onchange="onLangChange()" class="lang-select">
-        <option value="Arabic">🇸🇦 العربية — Arabic</option>
-        <option value="Franco Arabic">🔤 فرانكو — Franco Arabic</option>
-        <option value="English" selected>🇬🇧 English — الإنجليزية</option>
-        <option value="French">🇫🇷 Français — الفرنسية</option>
-        <option value="Spanish">🇪🇸 Español — الإسبانية</option>
-        <option value="German">🇩🇪 Deutsch — الألمانية</option>
-        <option value="Italian">🇮🇹 Italiano — الإيطالية</option>
-        <option value="Portuguese">🇵🇹 Português — البرتغالية</option>
-        <option value="Russian">🇷🇺 Русский — الروسية</option>
-        <option value="Chinese">🇨🇳 中文 — الصينية</option>
-        <option value="Japanese">🇯🇵 日本語 — اليابانية</option>
-        <option value="Korean">🇰🇷 한국어 — الكورية</option>
-        <option value="Turkish">🇹🇷 Türkçe — التركية</option>
-        <option value="Persian">🇮🇷 فارسی — الفارسية</option>
-        <option value="Urdu">🇵🇰 اردو — الأردية</option>
-        <option value="Hindi">🇮🇳 हिन्दी — الهندية</option>
-        <option value="Bengali">🇧🇩 বাংলা — البنغالية</option>
-        <option value="Dutch">🇳🇱 Nederlands — الهولندية</option>
-        <option value="Polish">🇵🇱 Polski — البولندية</option>
-        <option value="Swedish">🇸🇪 Svenska — السويدية</option>
-        <option value="Greek">🇬🇷 Ελληνικά — اليونانية</option>
-        <option value="Hebrew">🇮🇱 עברית — العبرية</option>
-        <option value="Indonesian">🇮🇩 Bahasa Indonesia — الإندونيسية</option>
-        <option value="Malay">🇲🇾 Bahasa Melayu — الملايو</option>
-        <option value="Thai">🇹🇭 ภาษาไทย — التايلاندية</option>
-        <option value="Vietnamese">🇻🇳 Tiếng Việt — الفيتنامية</option>
-        <option value="Czech">🇨🇿 Čeština — التشيكية</option>
-        <option value="Romanian">🇷🇴 Română — الرومانية</option>
-        <option value="Hungarian">🇭🇺 Magyar — الهنغارية</option>
-        <option value="Ukrainian">🇺🇦 Українська — الأوكرانية</option>
-        <option value="Swahili">🇰🇪 Kiswahili — السواحيلية</option>
-      </select>
-    </div>
-    <button class="swap-btn" onclick="swapLangs()" title="تبديل اللغتين">⇄</button>
-    <div class="lang-select-wrap">
-      <select id="tgtLang" onchange="onLangChange()" class="lang-select">
-        <option value="Arabic" selected>🇸🇦 العربية — Arabic</option>
-        <option value="Franco Arabic">🔤 فرانكو — Franco Arabic</option>
-        <option value="English">🇬🇧 English — الإنجليزية</option>
-        <option value="French">🇫🇷 Français — الفرنسية</option>
-        <option value="Spanish">🇪🇸 Español — الإسبانية</option>
-        <option value="German">🇩🇪 Deutsch — الألمانية</option>
-        <option value="Italian">🇮🇹 Italiano — الإيطالية</option>
-        <option value="Portuguese">🇵🇹 Português — البرتغالية</option>
-        <option value="Russian">🇷🇺 Русский — الروسية</option>
-        <option value="Chinese">🇨🇳 中文 — الصينية</option>
-        <option value="Japanese">🇯🇵 日本語 — اليابانية</option>
-        <option value="Korean">🇰🇷 한국어 — الكورية</option>
-        <option value="Turkish">🇹🇷 Türkçe — التركية</option>
-        <option value="Persian">🇮🇷 فارسی — الفارسية</option>
-        <option value="Urdu">🇵🇰 اردو — الأردية</option>
-        <option value="Hindi">🇮🇳 हिन्दी — الهندية</option>
-        <option value="Bengali">🇧🇩 বাংলা — البنغالية</option>
-        <option value="Dutch">🇳🇱 Nederlands — الهولندية</option>
-        <option value="Polish">🇵🇱 Polski — البولندية</option>
-        <option value="Swedish">🇸🇪 Svenska — السويدية</option>
-        <option value="Greek">🇬🇷 Ελληνικά — اليونانية</option>
-        <option value="Hebrew">🇮🇱 עברית — العبرية</option>
-        <option value="Indonesian">🇮🇩 Bahasa Indonesia — الإندونيسية</option>
-        <option value="Malay">🇲🇾 Bahasa Melayu — الملايو</option>
-        <option value="Thai">🇹🇭 ภาษาไทย — التايلاندية</option>
-        <option value="Vietnamese">🇻🇳 Tiếng Việt — الفيتنامية</option>
-        <option value="Czech">🇨🇿 Čeština — التشيكية</option>
-        <option value="Romanian">🇷🇴 Română — الرومانية</option>
-        <option value="Hungarian">🇭🇺 Magyar — الهنغارية</option>
-        <option value="Ukrainian">🇺🇦 Українська — الأوكرانية</option>
-        <option value="Swahili">🇰🇪 Kiswahili — السواحيلية</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="translator">
-    <div class="panel">
-      <div class="panel-head">
-        <span class="panel-lang" id="inLabel">العربية</span>
-        <div class="panel-btns">
-          <button class="pb" onclick="clearAll()" title="مسح">✕</button>
-          <button class="pb" id="cpIn" onclick="doCopy('in')" title="نسخ">⧉</button>
-        </div>
-      </div>
-      <textarea id="inTxt" placeholder="اكتب النص هنا…" oninput="countChars()" dir="rtl"></textarea>
-      <div class="panel-foot"><span id="cc">0 حرف</span></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <span class="panel-lang" id="outLabel">English</span>
-        <div class="panel-btns">
-          <button class="pb" id="cpOut" onclick="doCopy('out')" title="نسخ">⧉</button>
-        </div>
-      </div>
-      <div class="out-body" id="outTxt" dir="ltr"><span class="ph">ستظهر الترجمة هنا…</span></div>
-      <div class="panel-foot" id="outFoot"></div>
-    </div>
-  </div>
-
-  <div class="btn-wrap">
-    <button class="translate-btn" id="trBtn" onclick="doTranslate()">
-      <span id="btnInner">🌐 &nbsp; ترجم الآن</span>
-    </button>
-    <div class="kb-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> للترجمة السريعة</div>
-  </div>
-</main>
-
-<footer>Boda · مدعوم بذكاء اصطناعي · Powered by Claude AI</footer>
-<div class="toast" id="toast"></div>
-
-<script>
-  let busy = false;
-
-  // RTL languages
-  const RTL_LANGS = new Set(['Arabic','Persian','Urdu','Hebrew']);
-
-  function getLangDir(lang) { return RTL_LANGS.has(lang) ? 'rtl' : 'ltr'; }
-
-  function onLangChange() {
-    const src = document.getElementById('srcLang').value;
-    const tgt = document.getElementById('tgtLang').value;
-    const inp = document.getElementById('inTxt');
-    inp.setAttribute('dir', getLangDir(src));
-    document.getElementById('outTxt').setAttribute('dir', getLangDir(tgt));
-    document.getElementById('inLabel').textContent = src;
-    document.getElementById('outLabel').textContent = tgt;
-
-    const placeholders = {
-      'Arabic': 'اكتب النص هنا…',
-      'Franco Arabic': 'Ekteb el nas hena... مثال: ana mabsout',
-      'Persian': 'متن خود را اینجا بنویسید…',
-      'Urdu': 'یہاں متن لکھیں…',
-      'Hebrew': 'כתוב את הטקסט כאן…',
-    };
-    inp.placeholder = placeholders[src] || `Type your ${src} text here…`;
-  }
-
-  function swapLangs() {
-    const srcSel = document.getElementById('srcLang');
-    const tgtSel = document.getElementById('tgtLang');
-    const prevSrc = srcSel.value;
-    const prevTgt = tgtSel.value;
-    const out = document.getElementById('outTxt');
-    const inp = document.getElementById('inTxt');
-    const prevResult = out.dataset.res || '';
-
-    srcSel.value = prevTgt;
-    tgtSel.value = prevSrc;
-    onLangChange();
-
-    if (prevResult) {
-      inp.value = prevResult;
-      out.innerHTML = '<span class="ph">ستظهر الترجمة هنا…</span>';
-      out.dataset.res = '';
-      document.getElementById('outFoot').textContent = '';
-    }
-    countChars();
-  }
-
-  function countChars() {
-    const v = document.getElementById('inTxt').value;
-    document.getElementById('cc').textContent = `${v.length} ${RTL_LANGS.has(document.getElementById('srcLang').value) ? 'حرف' : 'chars'}`;
-  }
-
-  function clearAll() {
-    document.getElementById('inTxt').value = '';
-    const out = document.getElementById('outTxt');
-    out.innerHTML = '<span class="ph">ستظهر الترجمة هنا…</span>';
-    out.dataset.res = '';
-    document.getElementById('outFoot').textContent = '';
-    countChars();
-  }
-
-  async function doCopy(which) {
-    const text = which === 'in'
-      ? document.getElementById('inTxt').value
-      : (document.getElementById('outTxt').dataset.res || '');
-    if (!text) { showToast('لا يوجد نص'); return; }
-    const btnId = which === 'in' ? 'cpIn' : 'cpOut';
+  const copy = async (which) => {
+    const text = which === "in" ? inputText : outputText;
+    if (!text) { showToast("لا يوجد نص"); return; }
     try {
       await navigator.clipboard.writeText(text);
-      const b = document.getElementById(btnId);
-      b.textContent = '✓'; b.classList.add('ok');
-      setTimeout(() => { b.textContent = '⧉'; b.classList.remove('ok'); }, 1600);
-    } catch { showToast('فشل النسخ'); }
-  }
+      if (which === "in") { setCopiedIn(true); setTimeout(() => setCopiedIn(false), 1500); }
+      else { setCopiedOut(true); setTimeout(() => setCopiedOut(false), 1500); }
+    } catch { showToast("فشل النسخ"); }
+  };
 
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2800);
-  }
+  const translate = useCallback(async () => {
+    if (loading) return;
+    const text = inputText.trim();
+    if (!text) { showToast("اكتب نصاً أولاً"); return; }
+    if (srcLang === tgtLang) { showToast("اختر لغتين مختلفتين"); return; }
 
-  async function doTranslate() {
-    if (busy) return;
-    const text = document.getElementById('inTxt').value.trim();
-    const srcLang = document.getElementById('srcLang').value;
-    const tgtLang = document.getElementById('tgtLang').value;
-    if (!text) { showToast('من فضلك اكتب نصاً أولاً'); return; }
-    if (srcLang === tgtLang) { showToast('اختر لغتين مختلفتين'); return; }
-
-    busy = true;
-    const btn = document.getElementById('trBtn');
-    btn.disabled = true;
-    document.getElementById('btnInner').innerHTML = '<div class="spinner"></div>';
-
-    const out = document.getElementById('outTxt');
-    out.innerHTML = '<span class="cursor"></span>';
-    out.setAttribute('dir', getLangDir(tgtLang));
-    out.dataset.res = '';
-    document.getElementById('outFoot').textContent = '';
-
-    let prompt;
-    if (srcLang === 'Franco Arabic') {
-      prompt = `You are an expert in Egyptian/Arab Franco Arabic (Arabizi) — the romanized Arabic writing style used in chats (e.g., "ana mabsout", "kefak", "7abibi", "3andi", "2olt").
-
-Translate the following Franco Arabic text into ${tgtLang}.
-
-Instructions:
-- Return ONLY the translation, nothing else
-- Understand Franco Arabic conventions: 3=ع, 2=ء/أ, 7=ح, 5=خ, 6=ط, 8=ق, 9=ص
-- Translate naturally and fluently
-
-Franco Arabic text:
-${text}`;
-    } else if (tgtLang === 'Franco Arabic') {
-      prompt = `You are an expert in Egyptian/Arab Franco Arabic (Arabizi) — the romanized Arabic writing style used in chats (e.g., "ana mabsout", "kefak", "7abibi", "3andi", "2olt").
-
-Translate the following ${srcLang} text into Franco Arabic (Arabizi).
-
-Instructions:
-- Return ONLY the Franco Arabic transliteration/translation, nothing else
-- Use common Franco Arabic conventions: 3=ع, 2=ء/أ, 7=ح, 5=خ, 6=ط, 8=ق, 9=ص
-- Write in a natural, conversational Franco Arabic style as used in Egyptian/Arab social media
-
-Text:
-${text}`;
-    } else {
-      prompt = `You are a professional translator. Translate the following ${srcLang} text into ${tgtLang}.
-
-Instructions:
-- Return ONLY the translation, nothing else — no explanations, no notes, no preamble
-- Preserve line breaks, punctuation, and formatting
-- Use natural, fluent, idiomatic language appropriate for native speakers
-- If it is a headline or title, maintain that style
-
-Text to translate:
-${text}`;
-    }
+    setLoading(true);
+    setOutputText("");
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: "claude-sonnet-4-20250514",
           max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }]
+          messages: [{ role: "user", content: buildPrompt(text, srcLang, tgtLang) }]
         })
       });
-
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'API Error');
-
-      const result = (data.content?.[0]?.text || '').trim();
-      out.dataset.res = result;
-
-      // Typewriter effect
-      out.textContent = '';
-      const spd = Math.max(5, Math.min(20, 1600 / result.length));
-      let i = 0;
-      const cur = document.createElement('span');
-      cur.className = 'cursor';
-
-      function type() {
-        if (i < result.length) {
-          out.textContent = result.slice(0, ++i);
-          out.appendChild(cur);
-          setTimeout(type, spd);
-        } else {
-          out.textContent = result;
-          document.getElementById('outFoot').textContent = `${result.length} ${RTL_LANGS.has(tgtLang) ? 'حرف' : 'chars'}`;
-        }
-      }
-      type();
-
+      if (!res.ok) throw new Error(data.error?.message || "Error");
+      const result = (data.content?.[0]?.text || "").trim();
+      setOutputText(result);
     } catch (e) {
-      out.innerHTML = '<span class="ph">حدث خطأ، حاول مرة أخرى</span>';
-      showToast('⚠️ خطأ في الاتصال');
+      showToast("⚠️ خطأ، حاول مرة أخرى");
       console.error(e);
     } finally {
-      busy = false;
-      btn.disabled = false;
-      document.getElementById('btnInner').innerHTML = '🌐 &nbsp; ترجم الآن';
+      setLoading(false);
     }
-  }
+  }, [loading, inputText, srcLang, tgtLang]);
 
-  document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doTranslate();
-  });
+  const s = {
+    wrap: { minHeight: "100vh", background: "#080b11", color: "#e2e8f0", fontFamily: "'Cairo', sans-serif", position: "relative", overflow: "hidden" },
+    orb1: { position: "fixed", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)", top: -200, right: -150, filter: "blur(120px)", pointerEvents: "none", zIndex: 0 },
+    orb2: { position: "fixed", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.05) 0%,transparent 70%)", bottom: -100, left: -100, filter: "blur(100px)", pointerEvents: "none", zIndex: 0 },
+    header: { position: "sticky", top: 0, zIndex: 100, background: "rgba(8,11,17,0.9)", backdropFilter: "blur(18px)", borderBottom: "1px solid #1a2540", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" },
+    logoWrap: { display: "flex", alignItems: "center", gap: 12 },
+    logoMark: { width: 40, height: 40, background: "linear-gradient(135deg,#3b82f6,#6366f1)", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", boxShadow: "0 4px 18px rgba(59,130,246,0.35)" },
+    logoText: { fontSize: "1.5rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", letterSpacing: -1 },
+    logoSub: { fontSize: "0.66rem", color: "#4a5a72", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'Outfit', sans-serif" },
+    badge: { display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", background: "#0f1521", border: "1px solid #1a2540", borderRadius: 20, fontSize: "0.72rem", color: "#4a5a72", fontFamily: "'Outfit', sans-serif" },
+    dot: { width: 6, height: 6, background: "#10b981", borderRadius: "50%" },
+    main: { position: "relative", zIndex: 1, maxWidth: 960, margin: "0 auto", padding: "48px 20px 64px" },
+    hero: { textAlign: "center", marginBottom: 44 },
+    chip: { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px", background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 20, marginBottom: 18, fontSize: "0.76rem", color: "#93c5fd", fontFamily: "'Outfit',sans-serif", letterSpacing: 0.5 },
+    h1: { fontSize: "clamp(1.9rem,4.5vw,3rem)", fontWeight: 900, lineHeight: 1.15, letterSpacing: -1, marginBottom: 12 },
+    grad: { background: "linear-gradient(90deg,#60a5fa,#93c5fd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", fontFamily: "'Outfit',sans-serif" },
+    heroP: { color: "#94a3b8", fontSize: "0.95rem", fontWeight: 300 },
+    langBar: { display: "flex", alignItems: "center", gap: 8, background: "#0f1521", border: "1px solid #1a2540", borderRadius: 14, padding: 8, marginBottom: 12 },
+    select: { flex: 1, padding: "11px 12px", borderRadius: 10, background: "#151d2e", border: "1px solid #1a2540", color: "#e2e8f0", fontFamily: "'Cairo',sans-serif", fontSize: "0.87rem", fontWeight: 600, cursor: "pointer", outline: "none" },
+    swapBtn: { width: 44, height: 44, borderRadius: 10, background: "#151d2e", border: "1px solid #1a2540", color: "#4a5a72", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0, transition: "all .2s" },
+    grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 },
+    panel: { background: "#0f1521", border: "1px solid #1a2540", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column" },
+    panelHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#151d2e", borderBottom: "1px solid #1a2540" },
+    panelLang: { fontSize: "0.76rem", fontWeight: 700, color: "#4a5a72", letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Outfit',sans-serif" },
+    panelBtns: { display: "flex", gap: 4 },
+    pb: (active) => ({ width: 28, height: 28, borderRadius: 7, background: active ? "rgba(16,185,129,0.1)" : "transparent", border: "1px solid transparent", color: active ? "#10b981" : "#4a5a72", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.82rem" }),
+    textarea: (rtl) => ({ width: "100%", flex: 1, minHeight: 210, background: "transparent", border: "none", outline: "none", color: "#e2e8f0", fontFamily: "'Cairo','Outfit',sans-serif", fontSize: "1rem", lineHeight: 1.85, padding: 16, resize: "none", direction: rtl ? "rtl" : "ltr" }),
+    outBody: (rtl) => ({ flex: 1, minHeight: 210, padding: 16, fontSize: "1rem", lineHeight: 1.85, color: "#e2e8f0", whiteSpace: "pre-wrap", wordBreak: "break-word", direction: rtl ? "rtl" : "ltr" }),
+    outPh: { color: "#4a5a72", fontWeight: 300 },
+    panelFoot: { padding: "8px 14px", borderTop: "1px solid #1a2540", fontSize: "0.71rem", color: "#4a5a72", fontFamily: "'Outfit',sans-serif" },
+    translateBtn: { width: "100%", padding: 17, background: loading ? "rgba(59,130,246,0.5)" : "linear-gradient(135deg,#3b82f6,#6366f1)", border: "none", borderRadius: 14, color: "#fff", fontFamily: "'Cairo',sans-serif", fontSize: "1.1rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: "0 4px 22px rgba(59,130,246,0.22)" },
+    kbHint: { textAlign: "center", marginTop: 10, fontSize: "0.71rem", color: "#4a5a72", fontFamily: "'Outfit',sans-serif" },
+    kbd: { background: "#151d2e", border: "1px solid #1a2540", borderRadius: 5, padding: "2px 6px", fontSize: "0.65rem" },
+    toast: { position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", background: "#1e293b", border: "1px solid #ef4444", color: "#fca5a5", padding: "12px 22px", borderRadius: 12, fontSize: "0.88rem", fontFamily: "'Cairo',sans-serif", zIndex: 999, pointerEvents: "none", opacity: toast ? 1 : 0, transition: "opacity .3s" },
+    footer: { position: "relative", zIndex: 1, textAlign: "center", padding: 22, fontSize: "0.71rem", color: "#4a5a72", fontFamily: "'Outfit',sans-serif", borderTop: "1px solid #1a2540" },
+  };
 
-  // Init
-  onLangChange();
-</script>
-</body>
-</html>
+  return (
+    <div style={s.wrap} dir="rtl">
+      <div style={s.orb1} />
+      <div style={s.orb2} />
+
+      {/* Header */}
+      <header style={s.header}>
+        <div style={s.logoWrap}>
+          <div style={s.logoMark}>🌐</div>
+          <div>
+            <div style={s.logoText}>Bo<span style={{ color: "#60a5fa" }}>da</span></div>
+            <div style={s.logoSub}>Smart Translator · مترجم ذكي</div>
+          </div>
+        </div>
+        <div style={s.badge}><div style={s.dot} />AI-Powered</div>
+      </header>
+
+      <main style={s.main}>
+        {/* Hero */}
+        <div style={s.hero}>
+          <div style={s.chip}>✦ مترجم ذكي · Smart Translator</div>
+          <h1 style={s.h1}>
+            <span style={s.grad}>Boda</span> — ترجم بسهولة
+          </h1>
+          <p style={s.heroP}>ترجمة احترافية بين أكثر من 30 لغة — بدقة ووضوح</p>
+        </div>
+
+        {/* Language Bar */}
+        <div style={s.langBar}>
+          <select style={s.select} value={srcLang} onChange={e => setSrcLang(e.target.value)}>
+            {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label} — {l.sub}</option>)}
+          </select>
+          <button style={s.swapBtn} onClick={swap} title="تبديل">⇄</button>
+          <select style={s.select} value={tgtLang} onChange={e => setTgtLang(e.target.value)}>
+            {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label} — {l.sub}</option>)}
+          </select>
+        </div>
+
+        {/* Panels */}
+        <div style={s.grid}>
+          {/* Input */}
+          <div style={s.panel}>
+            <div style={s.panelHead}>
+              <span style={s.panelLang}>{srcLang}</span>
+              <div style={s.panelBtns}>
+                <button style={s.pb(false)} onClick={() => { setInputText(""); setOutputText(""); }} title="مسح">✕</button>
+                <button style={s.pb(copiedIn)} onClick={() => copy("in")} title="نسخ">{copiedIn ? "✓" : "⧉"}</button>
+              </div>
+            </div>
+            <textarea
+              style={s.textarea(srcInfo.rtl)}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder={
+                srcLang === "Arabic" ? "اكتب النص هنا…" :
+                srcLang === "Franco Arabic" ? "Ekteb hena... e.g. ana mabsout awy" :
+                srcLang === "Persian" ? "متن خود را اینجا بنویسید…" :
+                srcLang === "Urdu" ? "یہاں متن لکھیں…" :
+                srcLang === "Hebrew" ? "כתוב את הטקסט כאן…" :
+                `Type your ${srcLang} text here…`
+              }
+              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") translate(); }}
+            />
+            <div style={s.panelFoot}>{inputText.length} {srcInfo.rtl ? "حرف" : "chars"}</div>
+          </div>
+
+          {/* Output */}
+          <div style={s.panel}>
+            <div style={s.panelHead}>
+              <span style={s.panelLang}>{tgtLang}</span>
+              <div style={s.panelBtns}>
+                <button style={s.pb(copiedOut)} onClick={() => copy("out")} title="نسخ">{copiedOut ? "✓" : "⧉"}</button>
+              </div>
+            </div>
+            <div style={s.outBody(tgtInfo.rtl)}>
+              {loading ? (
+                <span style={{ color: "#60a5fa", fontWeight: 300 }}>جاري الترجمة…</span>
+              ) : outputText ? (
+                outputText
+              ) : (
+                <span style={s.outPh}>ستظهر الترجمة هنا…</span>
+              )}
+            </div>
+            <div style={s.panelFoot}>{outputText ? `${outputText.length} ${tgtInfo.rtl ? "حرف" : "chars"}` : ""}</div>
+          </div>
+        </div>
+
+        {/* Button */}
+        <button style={s.translateBtn} onClick={translate} disabled={loading}>
+          {loading ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 20, height: 20, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin 0.65s linear infinite" }} />
+              جاري الترجمة…
+            </span>
+          ) : "🌐   ترجم الآن"}
+        </button>
+        <div style={s.kbHint}><kbd style={s.kbd}>Ctrl</kbd> + <kbd style={s.kbd}>Enter</kbd> للترجمة السريعة</div>
+      </main>
+
+      <footer style={s.footer}>Boda · مدعوم بذكاء اصطناعي · Powered by Claude AI</footer>
+      {toast && <div style={s.toast}>{toast}</div>}
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Outfit:wght@300;400;600;700;900&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        select option { background: #111827; }
+        * { box-sizing: border-box; }
+        @media (max-width: 600px) {
+          div[style*="gridTemplateColumns"] { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
